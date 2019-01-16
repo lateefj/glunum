@@ -1,0 +1,3 @@
+[submodule "lua/u-test"]
+	path = lua/u-test
+	url = git@github.com:IUdalov/u-test.git

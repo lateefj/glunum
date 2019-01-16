@@ -1,2 +1,0 @@
-# glunum
-Gonum + Lua
