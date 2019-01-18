@@ -1,7 +1,8 @@
-glunum
-======
+lgn
+====
 
-`Gonum<https://www.gonum.org/>`_ + `Lua<https://github.com/yuin/gopher-lua>`_
+
+`Lua <https://github.com/yuin/gopher-lua>`_ + `Gonum <https://www.gonum.org/>`_ 
 
 Makes embedding Lua a little easier. 
 

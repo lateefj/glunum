@@ -1,3 +1,6 @@
 [submodule "lua/u-test"]
 	path = lua/u-test
 	url = git@github.com:IUdalov/u-test.git
+[submodule "gonum"]
+	path = gonum
+	url = git@github.com:gonum/gonum.git

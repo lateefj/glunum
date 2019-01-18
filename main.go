@@ -3,6 +3,12 @@ package main
 import (
 	"bytes"
 	"fmt"
+	"go/ast"
+	"go/parser"
+	"go/token"
+	"io/ioutil"
+	"log"
+	"strings"
 
 	lua "github.com/yuin/gopher-lua"
 	"gonum.org/v1/gonum/stat"
@@ -20,26 +26,7 @@ var statFunctions = map[string]lua.LGFunction{
 }
 
 func twoTableExtract(L *lua.LState) ([]float64, []float64) {
-	lx := L.CheckTable(1)
-
-	x := make([]float64, lx.Len())
-	for i := 0; i < lx.Len(); i++ {
-		if gv, ok := lx.RawGetInt(i).(lua.LNumber); ok {
-			x[i] = float64(gv)
-		}
-	}
-	nilWeights := L.Get(2)
-	var w []float64
-	if nilWeights != lua.LNil {
-		lw := L.CheckTable(2)
-		w = make([]float64, lw.Len())
-		for i := 0; i < lw.Len(); i++ {
-			if gv, ok := lw.RawGetInt(i).(lua.LNumber); ok {
-				w[i] = float64(gv)
-			}
-		}
-	}
-	return x, w
+	return paramFloatArray(L, 1), paramFloatArray(L, 2)
 }
 func statStdDev(L *lua.LState) int {
 	x, w := twoTableExtract(L)
@@ -81,5 +68,71 @@ func main() {
 	err := l.File("idea.lua")
 	if err != nil {
 		fmt.Printf("Error %s", err)
+	}
+
+	base := "./gonum/stat/"
+	fset := token.NewFileSet()
+	files, err := ioutil.ReadDir(base)
+	if err != nil {
+		log.Fatal(err)
+	}
+	if err != nil {
+		log.Fatal(err)
+	}
+	for _, f := range files {
+		if !strings.Contains(f.Name(), ".go") {
+			continue
+		}
+
+		fmt.Println(f.Name())
+		filePath := base + f.Name()
+		fileBytes, err := ioutil.ReadFile(filePath)
+		if err != nil {
+			fmt.Printf("Error reading file: %s\n", err)
+			continue
+		}
+		parsed, err := parser.ParseFile(fset, filePath, nil, parser.ParseComments)
+		if err != nil {
+			fmt.Printf("Error parsing: %s\n", err)
+			continue
+		}
+		// Skip test files
+		if strings.Contains(f.Name(), "_test.go") {
+			continue
+		}
+		ast.Inspect(parsed, func(n ast.Node) bool {
+			fn, ok := n.(*ast.FuncDecl)
+			if ok {
+				if fn.Name.IsExported() {
+					fmt.Printf("Function: %s\n", fn.Name.Name)
+
+					params := []string{}
+					if fn.Type == nil || fn.Type.Params.List == nil {
+						return true
+					}
+					for _, p := range fn.Type.Params.List {
+						fmt.Printf("%T\n", p.Type)
+						//stype := fmt.Sprintf("%T", p.Type)
+						//stype := fset.Position(p.Type.Pos()).String()
+						/*if p.Tag == nil {
+							continue
+						}*/
+						//stype := fmt.Sprintf("%T", p.Type)
+						//stype := p.Tag.Kind.String()
+						pos := fset.Position(p.Type.Pos())
+						fmt.Printf("Pos : %d\n", pos.Offset)
+						//stype := p.Names[0].Obj.Kind.String()
+						start := pos.Offset
+						end := start + (int(p.Type.End()) - int(p.Type.Pos()))
+						fmt.Printf("start %d and end %d total bytes %d\n", start, end, len(fileBytes))
+						stype := string(fileBytes[start:end])
+						params = append(params, fmt.Sprintf("\ttype name: %s type: %T type: %+v src: %s\n", p.Names[0], p.Type, p.Type, stype))
+					}
+					fmt.Printf("\n\tParams: %s\n", strings.Join(params, ","))
+				}
+				return true
+			}
+			return true
+		})
 	}
 }
