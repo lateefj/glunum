@@ -54,6 +54,66 @@ func statSkew(L *lua.LState) int {
 	return 1
 }
 
+// param ... Structure that keeps the name and type of parameter
+type param struct {
+	name  string
+	ptype string
+}
+
+func (p *param) convertFunction() string {
+	n, exists := paramConversionName[p.ptype]
+	if n == "" || !exists {
+		fmt.Println("************************************\n")
+		fmt.Println("************Function Type*********************\n")
+		fmt.Printf("%s\n", p.ptype)
+		fmt.Println("************************************\n")
+	}
+	return n
+}
+
+// exportFunc ... Structure that stores the data needed to generate lua wrappers
+type exportFunc struct {
+	name    string
+	params  []param
+	returns []string
+}
+
+func generateParams(funcs []exportFunc, parsed *ast.File, fset *token.FileSet, fileBytes []byte) []exportFunc {
+	ast.Inspect(parsed, func(n ast.Node) bool {
+		fn, ok := n.(*ast.FuncDecl)
+		if ok {
+			if fn.Name.IsExported() {
+
+				if fn.Type == nil || fn.Type.Params.List == nil || fn.Name.Obj == nil || fn.Name.Obj.Kind.String() != "func" {
+					return true
+				}
+				params := make([]param, 0)
+				for _, p := range fn.Type.Params.List {
+					pos := fset.Position(p.Type.Pos())
+					start := pos.Offset
+					end := start + (int(p.Type.End()) - int(p.Type.Pos()))
+					stype := string(fileBytes[start:end])
+					params = append(params, param{name: p.Names[0].String(), ptype: stype})
+				}
+				results := make([]string, 0)
+				if fn.Type.Results != nil {
+					for _, r := range fn.Type.Results.List {
+						pos := fset.Position(r.Type.Pos())
+						start := pos.Offset
+						end := start + (int(r.Type.End()) - int(r.Type.Pos()))
+						stype := string(fileBytes[start:end])
+						results = append(results, stype)
+					}
+				}
+				funcs = append(funcs, exportFunc{name: fn.Name.Name, params: params, returns: results})
+			}
+			return true
+		}
+		return true
+	})
+	return funcs
+}
+
 func main() {
 
 	in := bytes.NewBufferString("")
@@ -70,6 +130,7 @@ func main() {
 		fmt.Printf("Error %s", err)
 	}
 
+	pkgName := "stat"
 	base := "./gonum/stat/"
 	fset := token.NewFileSet()
 	files, err := ioutil.ReadDir(base)
@@ -79,6 +140,7 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
+	funcs := make([]exportFunc, 0)
 	for _, f := range files {
 		if !strings.Contains(f.Name(), ".go") {
 			continue
@@ -100,39 +162,8 @@ func main() {
 		if strings.Contains(f.Name(), "_test.go") {
 			continue
 		}
-		ast.Inspect(parsed, func(n ast.Node) bool {
-			fn, ok := n.(*ast.FuncDecl)
-			if ok {
-				if fn.Name.IsExported() {
-					fmt.Printf("Function: %s\n", fn.Name.Name)
-
-					params := []string{}
-					if fn.Type == nil || fn.Type.Params.List == nil {
-						return true
-					}
-					for _, p := range fn.Type.Params.List {
-						fmt.Printf("%T\n", p.Type)
-						//stype := fmt.Sprintf("%T", p.Type)
-						//stype := fset.Position(p.Type.Pos()).String()
-						/*if p.Tag == nil {
-							continue
-						}*/
-						//stype := fmt.Sprintf("%T", p.Type)
-						//stype := p.Tag.Kind.String()
-						pos := fset.Position(p.Type.Pos())
-						fmt.Printf("Pos : %d\n", pos.Offset)
-						//stype := p.Names[0].Obj.Kind.String()
-						start := pos.Offset
-						end := start + (int(p.Type.End()) - int(p.Type.Pos()))
-						fmt.Printf("start %d and end %d total bytes %d\n", start, end, len(fileBytes))
-						stype := string(fileBytes[start:end])
-						params = append(params, fmt.Sprintf("\ttype name: %s type: %T type: %+v src: %s\n", p.Names[0], p.Type, p.Type, stype))
-					}
-					fmt.Printf("\n\tParams: %s\n", strings.Join(params, ","))
-				}
-				return true
-			}
-			return true
-		})
+		funcs = generateParams(funcs, parsed, fset, fileBytes)
 	}
+	fmt.Printf("Funcs size is %d\n", len(funcs))
+	fmt.Println(generateSource(pkgName, funcs))
 }
