@@ -3,6 +3,7 @@ package main
 import (
 	lua "github.com/yuin/gopher-lua"
 	//	"gonum.org/v1/gonum/mat"
+	"gonum.org/v1/gonum/stat"
 )
 
 var (
@@ -11,11 +12,12 @@ var (
 		"float64":   paramFloat,
 	}
 	paramConversionName = map[string]string{
-		"[]float64": "paramFloatArray",
-		"float64":   "paramFloat",
-		"int":       "paramInt",
-		"[]bool":    "paramBoolArray",
-		"bool":      "paramBool",
+		"[]float64":    "paramFloatArray",
+		"float64":      "paramFloat",
+		"int":          "paramInt",
+		"[]bool":       "paramBoolArray",
+		"bool":         "paramBool",
+		"CumulantKind": "paramCumulantKind",
 	}
 
 	returnConversionMap = map[string]interface{}{
@@ -30,6 +32,9 @@ func returnFloat(L *lua.LState, v float64) {
 	L.Push(lua.LNumber(v))
 }
 
+func paramCumulantKind(L *lua.LState, paramNumber int) stat.CumulantKind {
+	return stat.CumulantKind(L.CheckInt(paramNumber))
+}
 func paramBool(L *lua.LState, paramNumber int) bool {
 	return bool(L.CheckBool(paramNumber))
 }
