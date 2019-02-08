@@ -63,10 +63,21 @@ type param struct {
 func (p *param) convertFunction() string {
 	n, exists := paramConversionName[p.ptype]
 	if n == "" || !exists {
-		fmt.Println("************************************\n")
-		fmt.Println("************Function Type*********************\n")
+		fmt.Println("************************************")
+		fmt.Println("************Param Function Type*********************")
 		fmt.Printf("%s\n", p.ptype)
-		fmt.Println("************************************\n")
+		fmt.Println("************************************")
+	}
+	return n
+}
+
+func convertReturnFunction(rtype string) string {
+	n, exists := returnConversionName[rtype]
+	if n == "" || !exists {
+		fmt.Println("************************************")
+		fmt.Println("************Return Function Type*********************")
+		fmt.Printf("%s\n", rtype)
+		fmt.Println("************************************")
 	}
 	return n
 }
