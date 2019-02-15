@@ -26,7 +26,7 @@ var statFunctions = map[string]lua.LGFunction{
 }
 
 func twoTableExtract(L *lua.LState) ([]float64, []float64) {
-	return paramFloatArray(L, 1), paramFloatArray(L, 2)
+	return paramFloatSlice(L, 1), paramFloatSlice(L, 2)
 }
 func statStdDev(L *lua.LState) int {
 	x, w := twoTableExtract(L)

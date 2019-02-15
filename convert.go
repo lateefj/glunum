@@ -9,24 +9,25 @@ import (
 
 var (
 	paramConversionMap = map[string]interface{}{
-		"[]float64": paramFloatArray,
+		"[]float64": paramFloatSlice,
 		"float64":   paramFloat,
 	}
 	paramConversionName = map[string]string{
-		"[]float64":    "paramFloatArray",
-		"float64":      "paramFloat",
-		"int":          "paramInt",
-		"[]bool":       "paramBoolArray",
-		"bool":         "paramBool",
-		"CumulantKind": "paramCumulantKind",
-		/*"mat.Matrix":    "paramMatrix",
-		"*mat.SymDense": "paramSymDensePointerFuncs",*/
+		"[]float64":     "paramFloatSlice",
+		"float64":       "paramFloat",
+		"int":           "paramInt",
+		"[]bool":        "paramBoolSlice",
+		"bool":          "paramBool",
+		"CumulantKind":  "paramCumulantKind",
+		"mat.Matrix":    "paramMatrix",
+		"*mat.SymDense": "paramSymDensePointer",
 	}
 
 	returnConversionMap = map[string]interface{}{
 		"float64": returnFloat,
 	}
 	returnConversionName = map[string]string{
+		"[]float64":     "returnFloatSlice",
 		"float64":       "returnFloat",
 		"mat.Matrix":    "returnMatrix",
 		"*mat.SymDense": "returnSymDensePointer",
@@ -75,11 +76,38 @@ func returnSynDensePointer(L *lua.LState, sd *mat.SymDense) {
 	L.Push(tbl)
 }
 
-/* func paramMatrix(L *lua.LState, paramNumber int) mat.Matrix {
-	tbl := L.NewTable()
+type wrapMatrix struct {
+	L     *lua.LState
+	table *lua.LTable
+}
+
+func (wm *wrapMatrix) Dims() (int, int) {
+	wm.L.CallByParam(lua.P{
+		Fn:      wm.L.GetGlobal("Dims"),
+		NRet:    2,
+		Protect: true,
+	},
+	)
+	x := wm.L.Get(-1)
+	wm.L.Pop(1)
+	y := wm.L.Get(-1)
+	wm.L.Pop(1)
+	return wm.L.CheckIn
+}
+
+func paramMatrix(L *lua.LState, paramNumber int) mat.Matrix {
+	wm := wrapMatrix{L.CheckTable(paramNumber)}
+	return wm
+}
+
+/*func paramSymDensePointer(L *lua.LState, paramNumber int) *mat.SymDense {
+	tbl := L.CheckTable(paramNumber)
+	tbl.
+
 	L.SetFunc(tbl, symDensePointerFuncs)
 	L.Push(tbl)
 }*/
+
 func paramCumulantKind(L *lua.LState, paramNumber int) stat.CumulantKind {
 	return stat.CumulantKind(L.CheckInt(paramNumber))
 }
@@ -87,7 +115,7 @@ func paramBool(L *lua.LState, paramNumber int) bool {
 	return bool(L.CheckBool(paramNumber))
 }
 
-func paramBoolArray(L *lua.LState, paramNumber int) []bool {
+func paramBoolSlice(L *lua.LState, paramNumber int) []bool {
 	nilCheck := L.Get(paramNumber)
 	if nilCheck == lua.LNil {
 		return nil
@@ -110,7 +138,7 @@ func paramFloat(L *lua.LState, paramNumber int) float64 {
 	return float64(L.CheckNumber(paramNumber))
 }
 
-func paramFloatArray(L *lua.LState, paramNumber int) []float64 {
+func paramFloatSlice(L *lua.LState, paramNumber int) []float64 {
 	nilCheck := L.Get(paramNumber)
 	if nilCheck == lua.LNil {
 		return nil
@@ -126,5 +154,10 @@ func paramFloatArray(L *lua.LState, paramNumber int) []float64 {
 	return x
 }
 
-/*func returnDense(L *lua.LState, d *mat.Dense) {
-}*/
+func returnFloatSlice(L *lua.LState, s []float64) {
+	tbl := L.NewTable()
+	for i, v := range s {
+		tbl.Insert(i, lua.LNumber(v))
+	}
+	L.Push(tbl)
+}
