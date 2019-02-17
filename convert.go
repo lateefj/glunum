@@ -88,16 +88,30 @@ func (wm *wrapMatrix) Dims() (int, int) {
 		Protect: true,
 	},
 	)
-	x := wm.L.Get(-1)
+	x := wm.L.ToInt(-1)
 	wm.L.Pop(1)
-	y := wm.L.Get(-1)
+	y := wm.L.ToInt(-1)
 	wm.L.Pop(1)
-	return wm.L.CheckIn
+	return x, y
+}
+
+func (wm *wrapMatrix) At(i, j int) float64 {
+	wm.L.CallByParam(lua.P{
+		Fn:      wm.L.GetGlobal("At"),
+		NRet:    1,
+		Protect: true,
+	}, lua.LNumber(i), lua.LNumber(j),
+	)
+	x := float64(wm.L.ToNumber(-1))
+	wm.L.Pop(1)
+	return x
+}
+func (wm *wrapMatrix) T() mat.Matrix {
+	return &wrapMatrix{L: wm.L, table: wm.table}
 }
 
 func paramMatrix(L *lua.LState, paramNumber int) mat.Matrix {
-	wm := wrapMatrix{L.CheckTable(paramNumber)}
-	return wm
+	return &wrapMatrix{L: L, table: L.CheckTable(paramNumber)}
 }
 
 /*func paramSymDensePointer(L *lua.LState, paramNumber int) *mat.SymDense {
