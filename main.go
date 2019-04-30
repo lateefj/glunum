@@ -176,6 +176,6 @@ func main() {
 		funcs = generateParams(funcs, parsed, fset, fileBytes)
 	}
 	fmt.Printf("Funcs size is %d\n", len(funcs))
-	generateSource(pkgName, funcs)
-	//fmt.Println(generateSource(pkgName, funcs))
+	//generateSource(pkgName, funcs)
+	fmt.Println(generateSource(pkgName, funcs))
 }

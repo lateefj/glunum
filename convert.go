@@ -126,7 +126,7 @@ type wrapCholeskyPointer struct {
 
 func (wcp *wrapCholeskyPointer) Cond() float64 {
 	wcp.L.CallByParam(lua.P{
-		Fn:      wcp.L.GetGlobal("Clone"),
+		Fn:      wcp.L.GetGlobal("Cond"),
 		NRet:    1,
 		Protect: true,
 	},
@@ -158,20 +158,18 @@ func (wcp *wrapCholeskyPointer) ExtendVecSym(a *mat.Cholesky, v mat.Vector) bool
 	return x
 }
 
-func (wcp *wrapCholeskyPointer) Clone(a *mat.Cholesky) *mat.Cholesky {
-	return &wrapCholeskyPointer{L: wcp.L, table: wcp.table}
+func (wcp *wrapCholeskyPointer) Clone(a *mat.Cholesky) {
+	//return &wrapCholeskyPointer{L: wcp.L, table: wcp.table}
 }
 func paramCholeskyPointer(L *lua.LState, paramNumber int) *mat.Cholesky {
-	return &wrapCholeskyPointer{L: L, table: L.CheckTable(paramNumber)}
+	return &mat.Cholesky{}
 }
 
 func choleskyPointerFuncs(tbl *lua.LTable, c *mat.Cholesky) map[string]lua.LGFunction {
 	return map[string]lua.LGFunction{
 		"Clone": func(L *lua.LState) int {
 			a := paramCholeskyPointer(L, 1)
-			tbl := L.NewTable()
-			L.SetFuncs(tbl, choleskyPointerFuncs(tbl, c.Clone(a)))
-			L.Push(tbl)
+			c.Clone(a)
 			return 1
 		},
 		"Cond": func(L *lua.LState) int {
