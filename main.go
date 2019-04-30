@@ -176,6 +176,11 @@ func main() {
 		funcs = generateParams(funcs, parsed, fset, fileBytes)
 	}
 	fmt.Printf("Funcs size is %d\n", len(funcs))
+	//fmt.Println(generateSource(pkgName, funcs))
+
+	err = ioutil.WriteFile("statpkg_gen.go", generateSource(pkgName, funcs), 0644)
 	//generateSource(pkgName, funcs)
-	fmt.Println(generateSource(pkgName, funcs))
+	if err != nil {
+		log.Fatal(err)
+	}
 }

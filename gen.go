@@ -5,9 +5,15 @@ import (
 	"fmt"
 )
 
-func generateSource(pkgName string, funcs []exportFunc) string {
-	start := fmt.Sprintf("package main\nimport \"gonum.org/v1/gonum/%s\"\n\n", pkgName)
+func generateSource(pkgName string, funcs []exportFunc) []byte {
+	start := fmt.Sprintf("package main\nimport (\"gonum.org/v1/gonum/%s\"\n\tlua \"github.com/yuin/gopher-lua\"\n)\n", pkgName)
 	buf := bytes.NewBufferString(start)
+	//  Add all function names to export func
+	buf.WriteString(fmt.Sprintf("var %sFunctions = map[string]lua.LGFunction {\n", pkgName))
+	for _, f := range funcs {
+		buf.WriteString(fmt.Sprintf("\t\"%s\": %s%s,\n", f.name, pkgName, f.name))
+	}
+	buf.WriteString("}\n")
 	for _, f := range funcs {
 		buf.WriteString(fmt.Sprintf("%s%s(L *lua.LState) int {\n", pkgName, f.name))
 		params := ""
@@ -31,5 +37,5 @@ func generateSource(pkgName string, funcs []exportFunc) string {
 		}
 		buf.WriteString("    return 1\n}\n")
 	}
-	return buf.String()
+	return buf.Bytes()
 }
