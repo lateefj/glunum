@@ -1,4 +1,4 @@
-package main
+package lgn
 
 import (
 	lua "github.com/yuin/gopher-lua"
